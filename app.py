@@ -167,12 +167,28 @@ def main():
         # Sidebar dynamic filters
         platforms = df['发布平台'].unique().tolist()
         with st.sidebar:
-            selected_platforms = st.multiselect("观察平台", platforms, default=platforms)
-            st.divider()
-            st.write("📈 **运营建议**: 当前微博互动密度最高，建议加大内容二创力度。")
+            st.markdown("### 🎯 监测对象")
+            selected_platforms = st.multiselect("选择观察平台", platforms, default=platforms)
+            st.markdown("---")
 
         # Filtered data
         f_df = df[df['发布平台'].isin(selected_platforms)]
+
+        # Dynamic Insight Calculation (placed after filtering)
+        if not f_df.empty:
+            with st.sidebar:
+                # Calculate interaction density (Total Interactions / Article Count)
+                insight_df = f_df.groupby('发布平台')[['点赞数', '评论数', '转发数']].sum()
+                insight_df['total_int'] = insight_df.sum(axis=1)
+                insight_df['count'] = f_df['发布平台'].value_counts()
+                insight_df['density'] = insight_df['total_int'] / insight_df['count']
+                
+                if not insight_df.empty:
+                    best_plat = insight_df['density'].idxmax()
+                    best_val = insight_df['density'].max()
+                    
+                    st.markdown("### 💡 智能运营建议")
+                    st.info(f"**{best_plat}** 当前表现最佳！\n\n篇均互动达到 **{int(best_val)}** 次。建议维持当前发布频率，并尝试将该平台的高赞内容分发至其他渠道。")
 
         # --- TIER 1: TOTAL PIPELINE ---
         st.markdown('<div class="ops-section-title">🚀 核心流水监测 (Matrix Totals)</div>', unsafe_allow_html=True)
@@ -266,14 +282,49 @@ def main():
 
         # --- TIER 4: CONTENT AUDIT ---
         st.markdown('<div class="ops-section-title">🏆 运营绩效审计与优质内容池 (Audit)</div>', unsafe_allow_html=True)
-        tab1, tab2 = st.tabs(["🔥 互动热度榜 Top 20", "💬 评论活跃榜 Top 20"])
+        
+        # 4.1 Local Platform Filter
+        audit_platforms = ["全平台"] + selected_platforms
+        selected_audit_plat = st.radio("审计范围筛选:", audit_platforms, horizontal=True, label_visibility="collapsed")
+
+        # 4.2 Data Preparation & CSI Calculation
+        audit_df = f_df.copy()
+        if selected_audit_plat != "全平台":
+            audit_df = audit_df[audit_df['发布平台'] == selected_audit_plat]
+            
+        # CSI Algorithm: Likes*1 + Comments*2 + Shares*3
+        audit_df['raw_csi'] = audit_df['点赞数'] + audit_df['评论数']*2 + audit_df['转发数']*3
+        
+        # Standardization (0-100 Scale)
+        max_csi = audit_df['raw_csi'].max()
+        if max_csi > 0:
+            audit_df['传播指数'] = (audit_df['raw_csi'] / max_csi) * 100
+        else:
+            audit_df['传播指数'] = 0
+            
+        tab1, tab2 = st.tabs(["🔥 优质传播热度榜 (CSI Top 20)", "💬 评论活跃榜 Top 20"])
         
         with tab1:
-            top_likes = f_df.nlargest(20, '点赞数')[['标题', '发布平台', '点赞数', '评论数', '发布时间']]
-            st.dataframe(top_likes, use_container_width=True, hide_index=True)
+            # Sort by CSI Index
+            top_csi = audit_df.nlargest(20, '传播指数')[['标题', '发布平台', '传播指数', '点赞数', '评论数', '转发数', '发布时间']]
+            # Format float to 1 decimal place
+            st.dataframe(
+                top_csi.style.format({'传播指数': '{:.1f}'}), 
+                use_container_width=True, 
+                hide_index=True,
+                column_config={
+                    "传播指数": st.column_config.ProgressColumn(
+                        "传播指数 (CSI)",
+                        help="基于点赞、评论、转发加权计算的归一化指数 (0-100)",
+                        format="%.1f",
+                        min_value=0,
+                        max_value=100,
+                    )
+                }
+            )
         
         with tab2:
-            top_comments = f_df.nlargest(20, '评论数')[['标题', '发布平台', '点赞数', '评论数', '发布时间']]
+            top_comments = audit_df.nlargest(20, '评论数')[['标题', '发布平台', '评论数', '点赞数', '发布时间']]
             st.dataframe(top_comments, use_container_width=True, hide_index=True)
 
         # --- TIER 5: SENTIMENT ---
