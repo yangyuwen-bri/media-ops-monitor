@@ -154,7 +154,7 @@ def main():
     """, unsafe_allow_html=True)
 
     if uploaded_file is None:
-        sample_path = "/Users/yuwen/work/XinHuaData/信源监测_Updated.xlsx"
+        sample_path = "信源监测_Updated.xlsx"
         try:
             df = load_data(sample_path)
         except:
