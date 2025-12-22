@@ -191,7 +191,8 @@ def main():
                     st.info(f"**{best_plat}** 当前表现最佳！\n\n篇均互动达到 **{int(best_val)}** 次。建议维持当前发布频率，并尝试将该平台的高赞内容分发至其他渠道。")
 
         # --- TIER 1: TOTAL PIPELINE ---
-        st.markdown('<div class="ops-section-title">🚀 核心流水监测 (Matrix Totals)</div>', unsafe_allow_html=True)
+        # --- TIER 1: TOTAL PIPELINE ---
+        st.markdown('<div class="ops-section-title">🚀 核心数据概览</div>', unsafe_allow_html=True)
         c1, c2, c3, c4, c5 = st.columns(5)
         
         with c1:
@@ -208,7 +209,8 @@ def main():
             st.markdown(f'<div class="metric-container"><div class="metric-sub">活跃监测渠道</div><div class="metric-main">{platforms_count}</div></div>', unsafe_allow_html=True)
 
         # --- TIER 2: BENCHMARKING ---
-        st.markdown('<div class="ops-section-title">⚖️ 发布节奏与权重分配 (Benchmarking)</div>', unsafe_allow_html=True)
+        # --- TIER 2: BENCHMARKING ---
+        st.markdown('<div class="ops-section-title">📈 发稿量与发布趋势</div>', unsafe_allow_html=True)
         col_bench1, col_bench2 = st.columns([1, 2])
 
         with col_bench1:
@@ -251,7 +253,8 @@ def main():
             st.markdown('</div>', unsafe_allow_html=True)
 
         # --- TIER 3: INTERACTION DETAIL ---
-        st.markdown('<div class="ops-section-title">📊 平台传播效率深度对标 (Efficiency)</div>', unsafe_allow_html=True)
+        # --- TIER 3: INTERACTION DETAIL ---
+        st.markdown('<div class="ops-section-title">🔥 阅读量与互动分析</div>', unsafe_allow_html=True)
         col_eff1, col_eff2 = st.columns(2)
 
         with col_eff1:
@@ -281,7 +284,8 @@ def main():
             st.markdown('</div>', unsafe_allow_html=True)
 
         # --- TIER 4: CONTENT AUDIT ---
-        st.markdown('<div class="ops-section-title">🏆 运营绩效审计与优质内容池 (Audit)</div>', unsafe_allow_html=True)
+        # --- TIER 4: CONTENT AUDIT ---
+        st.markdown('<div class="ops-section-title">🏆 热门稿件排行榜</div>', unsafe_allow_html=True)
         
         # 4.1 Local Platform Filter
         audit_platforms = ["全平台"] + selected_platforms
@@ -327,37 +331,6 @@ def main():
             top_comments = audit_df.nlargest(20, '评论数')[['标题', '发布平台', '评论数', '点赞数', '发布时间']]
             st.dataframe(top_comments, use_container_width=True, hide_index=True)
 
-        # --- TIER 5: SENTIMENT ---
-        if '情感属性' in f_df.columns:
-            st.markdown('<div class="ops-section-title">⚡ 全矩阵运营舆情及情感分布态势 (Sentiment Matrix)</div>', unsafe_allow_html=True)
-            
-            p_sent_list = f_df['发布平台'].unique().tolist()
-            # Batch in 4 columns for a cleaner macro-integrated look
-            for i in range(0, len(p_sent_list), 4):
-                batch = p_sent_list[i:i+4]
-                cols = st.columns(4)
-                for j, plat in enumerate(batch):
-                    with cols[j]:
-                        plat_df = f_df[f_df['发布平台'] == plat]
-                        sent_counts = plat_df['情感属性'].value_counts().reset_index()
-                        sent_counts.columns = ['情感', '数量']
-                        
-                        fig_plat_sent = px.pie(sent_counts, values='数量', names='情感', hole=0.85,
-                                              color='情感', color_discrete_map={'正面': '#10b981', '中性': '#94a3b8', '负面': '#ef4444'})
-                        
-                        fig_plat_sent.update_layout(
-                            showlegend=False,
-                            margin=dict(l=10, r=10, t=10, b=10),
-                            height=180,
-                            annotations=[dict(text=f'<span style="font-size:14px; color:#1e293b; font-weight:700">{plat}</span>', 
-                                            x=0.5, y=0.5, showarrow=False)]
-                        )
-                        fig_plat_sent.update_traces(
-                            textinfo='none', 
-                            hoverinfo='label+percent',
-                            marker=dict(line=dict(color='#f1f5f9', width=3))
-                        )
-                        st.plotly_chart(fig_plat_sent, use_container_width=True, key=f"sent_v6_{plat}", config={'displayModeBar': False})
 
 if __name__ == "__main__":
     main()
